@@ -1,4 +1,7 @@
+from datetime import datetime
+
 from django.db.models import Q
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import CreateAPIView, DestroyAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
 
@@ -45,8 +48,10 @@ class PostLikeAnalyticsRetrieveApiView(RetrieveAPIView):
 
         date_range = Q()
         if start_date:
+            self.is_valid_date(start_date)
             date_range &= Q(created_at__gte=start_date)
         if end_date:
+            self.is_valid_date(end_date)
             date_range &= Q(created_at__lte=end_date)
         if date_range:
             queryset = queryset.filter(date_range)
@@ -54,3 +59,9 @@ class PostLikeAnalyticsRetrieveApiView(RetrieveAPIView):
         number_of_likes = queryset.distinct().count()
         return {'number_of_likes': number_of_likes}
 
+    def is_valid_date(self, date):
+        try:
+            datetime.strptime(date, '%Y-%m-%d')
+            return True
+        except ValueError:
+            raise ValidationError({"error": 'Date has invalid format'})
